@@ -5,3 +5,7 @@ venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# DEVOPS 1
+*.pem
+docker/mysql-init/LEEME.txt

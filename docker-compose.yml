@@ -1,0 +1,76 @@
+# Belleza Integral - entorno local con Docker Compose (DEVOPS 1).
+# Este archivo NO afecta el despliegue en Railway; es solo para desarrollo local.
+# Uso:  cp .env.example .env  (completar)  ->  docker compose up --build
+name: belleza-integral
+
+x-api-env: &api-env
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  DB_NAME: ${DB_NAME:-belleza_integral_local}
+  DB_USER: ${DB_USER:-belleza_app}
+  DB_PASSWORD: ${DB_PASSWORD}
+  JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+
+x-api-depends: &api-depends
+  mysql:
+    condition: service_healthy
+
+services:
+  mysql:
+    image: mysql:8.4
+    command: >
+      --log-bin-trust-function-creators=1
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-belleza_integral_local}
+      MYSQL_USER: ${DB_USER:-belleza_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    ports: ["3307:3306"]
+
+  auth:
+    build: { context: ., dockerfile: docker/auth/Dockerfile }
+    environment: *api-env
+    depends_on: *api-depends
+    ports: ["5001:5000"]
+
+  catalogo:
+    build: { context: ., dockerfile: docker/catalogo/Dockerfile }
+    environment: *api-env
+    depends_on: *api-depends
+    ports: ["5002:5000"]
+
+  pedidos:
+    build: { context: ., dockerfile: docker/pedidos/Dockerfile }
+    environment: *api-env
+    depends_on: *api-depends
+    ports: ["5003:5000"]
+
+  pagos:
+    build: { context: ., dockerfile: docker/pagos/Dockerfile }
+    ports: ["5004:5000"]
+
+  # Opcional: la API completa (monolito), con el visor web incluido.
+  # Uso:  docker compose --profile monolito up api
+  api:
+    profiles: ["monolito"]
+    build: { context: ., dockerfile: docker/auth/Dockerfile }
+    environment:
+      <<: *api-env
+      SERVICE: all
+    depends_on: *api-depends
+    ports: ["5000:5000"]
+
+volumes:
+  mysql_data:
