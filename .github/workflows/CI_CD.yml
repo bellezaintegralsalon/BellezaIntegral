@@ -1,0 +1,186 @@
+name: CI/CD - dev a main
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build y pruebas Python/MySQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root_ci_only
+          MYSQL_DATABASE: belleza_integral_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot_ci_only"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      MYSQL_PWD: root_ci_only
+      BELLEZA_TEST_DATABASE_URL: mysql+pymysql://root:root_ci_only@127.0.0.1:3306/belleza_integral_test?charset=utf8mb4
+      DB_HOST: 127.0.0.1
+      DB_PORT: "3306"
+      DB_NAME: belleza_integral_test
+      DB_USER: root
+      DB_PASSWORD: root_ci_only
+      JWT_SECRET_KEY: CI_BELLEZA_INTEGRAL_CLAVE_SEGURA_SOLO_PRUEBAS_2026
+      CORS_ORIGINS: http://localhost:5173
+      PYTHONPATH: ${{ github.workspace }}
+      TZ: America/Guatemala
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-test.txt
+
+      - name: Instalar cliente MySQL y comprobar la VM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mysql-client
+          for intento in {1..30}; do
+            mysqladmin ping -h 127.0.0.1 -P 3306 -uroot && break
+            sleep 2
+          done
+          mysqladmin ping -h 127.0.0.1 -P 3306 -uroot
+
+      - name: Instalar dependencias Python
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-test.txt
+
+      - name: Build y validaciones estáticas
+        run: |
+          python -m compileall -q app scripts tests
+          python -m pip check
+
+      - name: Preparar MySQL de pruebas con datos íntegros
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -uroot belleza_integral_test < tests/sql/001_esquema_ci.sql
+          mysql -h 127.0.0.1 -P 3306 -uroot belleza_integral_test <<'SQL'
+          CREATE TABLE IF NOT EXISTS auditoria_cambios (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            fecha_evento DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            usuario_bd VARCHAR(288) NOT NULL,
+            usuario_app_id INT UNSIGNED NULL,
+            ip_app VARCHAR(45) NULL,
+            correlacion_id CHAR(36) NULL,
+            tabla VARCHAR(64) NOT NULL,
+            registro_id BIGINT UNSIGNED NULL,
+            operacion VARCHAR(16) NOT NULL,
+            datos_anteriores JSON NULL,
+            datos_nuevos JSON NULL,
+            PRIMARY KEY (id),
+            KEY idx_auditoria_cambios_fecha (fecha_evento),
+            KEY idx_auditoria_cambios_tabla (tabla, registro_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+          CREATE TABLE IF NOT EXISTS auditoria_eventos (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            fecha_evento DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            usuario_app_id INT UNSIGNED NULL,
+            ip_app VARCHAR(45) NULL,
+            correlacion_id CHAR(36) NULL,
+            tipo_evento VARCHAR(80) NOT NULL,
+            entidad VARCHAR(64) NOT NULL,
+            entidad_id BIGINT UNSIGNED NULL,
+            detalle JSON NULL,
+            PRIMARY KEY (id),
+            KEY idx_auditoria_eventos_fecha (fecha_evento),
+            KEY idx_auditoria_eventos_entidad (entidad, entidad_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+          CREATE TABLE IF NOT EXISTS belleza_test_marker (
+            id INT NOT NULL PRIMARY KEY
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+          INSERT INTO belleza_test_marker (id)
+          VALUES (1)
+          ON DUPLICATE KEY UPDATE id = VALUES(id);
+          SQL
+          mysql -h 127.0.0.1 -P 3306 -uroot belleza_integral_test -e "SHOW TABLES; SELECT DATABASE() AS database_name;"
+
+      - name: Pruebas unitarias
+        run: |
+          mkdir -p artifacts
+          python -m pytest tests/unit -q \
+            --junitxml=artifacts/pruebas-unitarias.xml
+
+      - name: Pruebas de APIs e integridad con MySQL
+        run: |
+          python -m pytest tests -q \
+            --ignore=tests/unit \
+            --tb=short \
+            --junitxml=artifacts/pruebas-api-integracion.xml
+
+      - name: Resumen de resultados
+        if: always()
+        run: |
+          {
+            echo "## Belleza Integral - CI/CD"
+            echo ""
+            echo "- Runner: Ubuntu Linux (máquina virtual efímera)"
+            echo "- Base de pruebas: MySQL 8.4 / belleza_integral_test"
+            echo "- Build: compilación Python y pip check"
+            echo "- Tests: unitarios + APIs + integridad de datos"
+            echo "- Promoción: dev -> main solo si este job termina correctamente"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar evidencias de pruebas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-ci
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 14
+
+  promote:
+    name: Publicar dev en main
+    needs: build-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Descargar historial completo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fast-forward seguro de main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main dev
+          git checkout -B main origin/main
+          git merge --ff-only origin/dev
+          git push origin HEAD:main
