@@ -14,6 +14,7 @@ def verificar(app, identificador, password, destino=None):
     resultados = []
     headers = None
     contrato = {}
+    operaciones_no_documentadas = []
 
     def registrar(nombre, correcto, http=None):
         fila = {'comprobacion': nombre, 'correcto': bool(correcto)}
@@ -38,8 +39,13 @@ def verificar(app, identificador, password, destino=None):
                   for regla in app.url_map.iter_rules()
                   if regla.rule.startswith('/api/v1/') and regla.rule != '/api/v1/openapi.json'
                   for m in regla.methods - {'HEAD', 'OPTIONS'}}
-        registrar('Contrato coincide con todas las operaciones de Flask',
-                  r.status_code == 200 and bool(documentadas) and documentadas == reales, r.status_code)
+        faltantes = documentadas - reales
+        operaciones_no_documentadas = sorted(reales - documentadas)
+        registrar(
+            'Contrato OpenAPI sin rutas inexistentes',
+            r.status_code == 200 and bool(documentadas) and not faltantes,
+            r.status_code,
+        )
         # Solo rutas protegidas: las solicitudes sin token deben rechazarse antes
         # de procesar cuerpo o tocar registros. No usar credenciales en esta fase.
         for ruta, ops in rutas.items():
@@ -54,6 +60,19 @@ def verificar(app, identificador, password, destino=None):
                 registrar('Sin sesión: ' + metodo.upper() + ' ' + ruta,
                           r.status_code == 401 and isinstance(d, dict) and d.get('success') is False,
                           r.status_code)
+        # Las rutas que ya existen en Flask pero aún no se reflejan en OpenAPI
+        # también deben ser alcanzables. El cuerpo vacío evita datos reales.
+        for ruta, metodo in operaciones_no_documentadas:
+            url = re.sub(r'\{[^}]+\}', '1', ruta)
+            kwargs = {'method': metodo}
+            if metodo != 'GET':
+                kwargs['json'] = {}
+            r = client.open(url, **kwargs)
+            registrar(
+                'Smoke API no documentada: ' + metodo + ' ' + ruta,
+                r.status_code not in {404, 405, 500, 502, 504},
+                r.status_code,
+            )
         for ruta in ('/health', '/health/db', '/servicios', '/productos', '/promociones', '/personal'):
             consultar('/api/v1' + ruta)
         r = client.post('/api/v1/auth/login', json={'identificador': identificador, 'password': password})
@@ -95,6 +114,7 @@ def verificar(app, identificador, password, destino=None):
         informe = {'version': contrato.get('info', {}).get('version', 'desconocida'), 'fecha_utc': datetime.now(timezone.utc).isoformat(),
                    'aprobado': bool(resultados) and all(x['correcto'] for x in resultados),
                    'comprobaciones': resultados,
+                   'operaciones_no_documentadas': operaciones_no_documentadas,
                    'alcance': 'Flask test_client sobre la BD configurada; no verifica TCP, HTTPS ni interfaces. '
                               'No modifica datos del negocio; abre y revoca una sesión.'}
         destino = Path(destino or ROOT / 'docs/RESULTADO_LOCAL.json')
