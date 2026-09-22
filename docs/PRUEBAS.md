@@ -64,6 +64,8 @@ al proceso de pruebas mediante su entorno, sin imprimirla ni escribirla a un arc
 Sin BELLEZA_TEST_DATABASE_URL, pytest omite las pruebas MySQL: un resultado skipped
 no debe presentarse como aprobado.
 
+   <!-- prueba de pipeline -->
+
 ## Pruebas que siguen abiertas
 
 - Windows/Python 3.13 y la instalación MySQL del usuario.
