@@ -181,3 +181,17 @@ CREATE TABLE IF NOT EXISTS sesiones_usuario (
     PRIMARY KEY (usuario_id),
     CONSTRAINT fk_sesiones_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE OR REPLACE VIEW vw_promociones_vigentes AS
+SELECT
+    id,
+    titulo,
+    descripcion,
+    descuento_porcentaje,
+    fecha_inicio,
+    fecha_fin,
+    activa,
+    puntos_costo
+FROM promociones
+WHERE activa = 1
+  AND CURRENT_DATE BETWEEN fecha_inicio AND fecha_fin;
