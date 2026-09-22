@@ -81,9 +81,9 @@ jobs:
 
       - name: Preparar MySQL de pruebas con datos íntegros
         run: |
-          mysql -h 127.0.0.1 -P 3306 -uroot belleza_integral_test < tests/sql/001_esquema_ci.sql
-          mysql -h 127.0.0.1 -P 3306 -uroot belleza_integral_test <<'SQL'
-          CREATE TABLE IF NOT EXISTS auditoria_cambios (
+            mysql -h 127.0.0.1 -P 3306 -uroot belleza_integral_test < tests/sql/001_esquema_ci.sql
+            mysql -h 127.0.0.1 -P 3306 -uroot belleza_integral_test <<'SQL'
+            CREATE TABLE IF NOT EXISTS auditoria_cambios (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             fecha_evento DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             usuario_bd VARCHAR(288) NOT NULL,
@@ -98,9 +98,9 @@ jobs:
             PRIMARY KEY (id),
             KEY idx_auditoria_cambios_fecha (fecha_evento),
             KEY idx_auditoria_cambios_tabla (tabla, registro_id)
-          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-          CREATE TABLE IF NOT EXISTS auditoria_eventos (
+            CREATE TABLE IF NOT EXISTS auditoria_eventos (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             fecha_evento DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             usuario_app_id INT UNSIGNED NULL,
@@ -113,17 +113,17 @@ jobs:
             PRIMARY KEY (id),
             KEY idx_auditoria_eventos_fecha (fecha_evento),
             KEY idx_auditoria_eventos_entidad (entidad, entidad_id)
-          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-          CREATE TABLE IF NOT EXISTS belleza_test_marker (
+            CREATE TABLE IF NOT EXISTS belleza_test_marker (
             id INT NOT NULL PRIMARY KEY
-          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-          INSERT INTO belleza_test_marker (id)
-          VALUES (1)
-          ON DUPLICATE KEY UPDATE id = VALUES(id);
-          SQL
-          mysql -h 127.0.0.1 -P 3306 -uroot belleza_integral_test -e "SHOW TABLES; SELECT DATABASE() AS database_name;"
+            INSERT INTO belleza_test_marker (id)
+            VALUES (1)
+            ON DUPLICATE KEY UPDATE id = VALUES(id);
+            SQL
+            mysql -h 127.0.0.1 -P 3306 -uroot belleza_integral_test -e "SHOW TABLES; SELECT DATABASE() AS database_name;"
 
       - name: Pruebas unitarias
         run: |
