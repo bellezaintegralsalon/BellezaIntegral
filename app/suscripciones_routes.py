@@ -1,4 +1,5 @@
 """Planes y suscripciones mensuales de Belleza Integral."""
+from datetime import datetime, timedelta
 import hashlib
 import json
 import re
@@ -571,14 +572,12 @@ def renew(subscription_id):
             ).scalar_one()
 
             if not puede_renovar:
-                renovacion_desde = c.execute(
-                    text(
-                        """
-                        SELECT DATE_SUB(:fecha_fin, INTERVAL 2 DAY)
-                        """
-                    ),
-                    {"fecha_fin": sub["fecha_fin"]},
-                ).scalar_one()
+                # MySQL/PyMySQL puede devolver DATE_SUB sobre un parámetro
+                # enlazado como texto. Convertimos el valor antes de formatearlo.
+                renovacion_desde = sub["fecha_fin"]
+                if isinstance(renovacion_desde, str):
+                    renovacion_desde = datetime.fromisoformat(renovacion_desde)
+                renovacion_desde -= timedelta(days=2)
 
                 raise ApiError(
                     "La renovación estará disponible a partir de "
