@@ -61,6 +61,20 @@ def motor():
                 c.exec_driver_sql(limpio)
                 c.commit()
 
+        # La ruta pública de promociones depende de esta vista. Se crea en el
+        # fixture para que pytest local y CI utilicen el mismo esquema mínimo.
+        c.exec_driver_sql(
+            """
+            CREATE OR REPLACE VIEW vw_promociones_vigentes AS
+            SELECT id, titulo, descripcion, descuento_porcentaje,
+                   fecha_inicio, fecha_fin, activa, puntos_costo
+            FROM promociones
+            WHERE activa = 1
+              AND CURRENT_DATE BETWEEN fecha_inicio AND fecha_fin
+            """
+        )
+        c.commit()
+
     yield e
     e.dispose()
 
