@@ -29,6 +29,7 @@ from app.servicios_service import validar_servicio
 from app.usuarios_service import validar_registro
 
 
+@pytest.mark.caso("CP-01")
 def test_validar_registro_normaliza_datos_validos():
     resultado = validar_registro(
         {
@@ -118,6 +119,7 @@ def test_validar_servicio_convierte_precio_y_normaliza_opcionales():
         },
     ],
 )
+@pytest.mark.caso("CP-02")
 def test_validar_servicio_rechaza_entradas_invalidas(datos):
     with pytest.raises(ValueError):
         validar_servicio(datos)
