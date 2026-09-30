@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from io import BytesIO
 from sqlalchemy import text
+import pytest
 from app.disponibilidad_service import ZONA_NEGOCIO
 
 
@@ -129,7 +130,8 @@ def test_reports_export(client,headers):
     assert client.get('/visor/app.js').status_code==200
 
 
-def test_concurrent_booking(app,client,headers):
+@pytest.mark.caso("CP-12")
+def test_concurrent_booking(app,client,headers,motor):
     s,date,_=catalog(client,headers);barrier=Barrier(2)
     hs=[headers(2),headers(4)]
     def reserve(h):
@@ -138,6 +140,8 @@ def test_concurrent_booking(app,client,headers):
             return c.post('/api/v1/citas',json={'personal_id':3,'servicio_id':s,'fecha':date,'hora':'09:00'},headers=h).status_code
     with ThreadPoolExecutor(max_workers=2) as executor:statuses=list(executor.map(reserve,hs))
     assert sorted(statuses)==[201,409],statuses
+    with motor.connect() as c:
+        assert c.execute(text('SELECT COUNT(*) FROM citas WHERE personal_id=3 AND fecha=:fecha'),{'fecha':date}).scalar_one()==1
 
 
 def test_concurrent_stock(app,client,headers,motor):
