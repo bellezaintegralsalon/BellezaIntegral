@@ -19,7 +19,7 @@ está desplegada en Railway (producción), que no define `SERVICE` y por lo tant
 ## Despliegue en producción
 
 La aplicación corre en **Railway**, conectado a la rama `main`, con la base de datos en **Aiven (MySQL)**.
-Cada Pull Request se valida con GitHub Actions (`.github/workflows/CI_CD.yml`); al fusionarse `dev` en
+Los Pull Requests dirigidos a `dev` o `main` se validan con GitHub Actions (`.github/workflows/CI_CD.yml`); al fusionarse `dev` en
 `main`, Railway despliega automáticamente. Lo de este README (Docker, `docker-compose.yml`) es para
 **desarrollo y pruebas locales**, y no reemplaza ni modifica ese despliegue.
 
@@ -68,12 +68,16 @@ en `_test` (borran datos: nunca usar la base real). El pipeline de CI ya las eje
 ## Flujo de trabajo Git y CI/CD
 
 `main` (producción, protegida) ← `dev` (integración) ← ramas de trabajo. Cada push a `dev` ejecuta
-pruebas automáticas (`build-test`); si pasan, un job (`promote`) abre y fusiona un Pull Request de
-`dev` hacia `main`, y Railway despliega. Detalle completo en `.github/workflows/CI_CD.yml`.
+pruebas automáticas (`build-test`); si pasan, un job (`promote`) realiza fast-forward y publica `dev` en
+`main`; Railway despliega según su conexión configurada. Detalle completo en `.github/workflows/CI_CD.yml`.
 
 ## Documentación
 
-- `docs/PRUEBAS.md`: plan de pruebas.
+- `docs/PLAN_PRUEBAS_DEVOPS2.md` y `docs/casos_prueba_devops2.json`: plan y 22 casos.
+- `docs/DEVOPS2.md`: configuración Jenkins y staging.
+- `docs/SCRUM_SPRINT2.md`: registros por completar con datos reales.
+- `docs/GUION_VIDEO_DEVOPS2.md`: guion del video de 9 minutos y 30 segundos.
+- `docs/PRUEBAS.md`: verificación de entregas anteriores.
 - `docs/RUTAS.md`, `docs/openapi.json`: contrato de la API.
 - `README_SERVIDOR.md`: notas de despliegue en servidor.
 
@@ -81,3 +85,20 @@ pruebas automáticas (`build-test`); si pasan, un job (`promote`) abre y fusiona
 
 No subir `.env`, `.env.remote`, certificados ni contraseñas. Las credenciales de Aiven y la
 `JWT_SECRET_KEY` de producción se configuran como variables en Railway, no en el repositorio.
+
+## DEVOPS 2
+
+`Jenkinsfile` añade checkout, build, test y deploy staging. El despliegue está
+desactivado hasta configurar servicio, URL y credencial de staging. Los reportes
+HTML y XML se guardan en `artifacts/`, también cuando fallan las pruebas.
+
+```bash
+python scripts/ejecutar_pruebas.py --suite unitarias
+# Para integración y Selenium, preparar primero una base aislada terminada en _test:
+python scripts/preparar_bd_pruebas.py
+python scripts/ejecutar_pruebas.py --suite todas
+```
+
+Selenium ejecuta Chrome real contra la API y MySQL aislados. No utiliza las
+credenciales del salón. El plan incluye 20 casos automatizados y 2 manuales
+(UX y aceptación). La configuración y los requisitos están en `docs/DEVOPS2.md`.
