@@ -7,6 +7,7 @@ on:
       - main
   pull_request:
     branches:
+      - dev
       - main
   workflow_dispatch:
 
@@ -45,6 +46,8 @@ jobs:
       CORS_ORIGINS: http://localhost:5173
       PYTHONPATH: ${{ github.workspace }}
       TZ: America/Guatemala
+      SERVICE: all
+      CHROME_NO_SANDBOX: "1"
 
     steps:
       - name: Descargar código
@@ -79,64 +82,17 @@ jobs:
           python -m compileall -q app scripts tests
           python -m pip check
 
-      - name: Preparar MySQL de pruebas con datos íntegros
-        run: |
-            mysql -h 127.0.0.1 -P 3306 -uroot belleza_integral_test < tests/sql/001_esquema_ci.sql
-            mysql -h 127.0.0.1 -P 3306 -uroot belleza_integral_test <<'SQL'
-            CREATE TABLE IF NOT EXISTS auditoria_cambios (
-            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            fecha_evento DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            usuario_bd VARCHAR(288) NOT NULL,
-            usuario_app_id INT UNSIGNED NULL,
-            ip_app VARCHAR(45) NULL,
-            correlacion_id CHAR(36) NULL,
-            tabla VARCHAR(64) NOT NULL,
-            registro_id BIGINT UNSIGNED NULL,
-            operacion VARCHAR(16) NOT NULL,
-            datos_anteriores JSON NULL,
-            datos_nuevos JSON NULL,
-            PRIMARY KEY (id),
-            KEY idx_auditoria_cambios_fecha (fecha_evento),
-            KEY idx_auditoria_cambios_tabla (tabla, registro_id)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      - name: Preparar MySQL aislado
+        run: python scripts/preparar_bd_pruebas.py
 
-            CREATE TABLE IF NOT EXISTS auditoria_eventos (
-            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            fecha_evento DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            usuario_app_id INT UNSIGNED NULL,
-            ip_app VARCHAR(45) NULL,
-            correlacion_id CHAR(36) NULL,
-            tipo_evento VARCHAR(80) NOT NULL,
-            entidad VARCHAR(64) NOT NULL,
-            entidad_id BIGINT UNSIGNED NULL,
-            detalle JSON NULL,
-            PRIMARY KEY (id),
-            KEY idx_auditoria_eventos_fecha (fecha_evento),
-            KEY idx_auditoria_eventos_entidad (entidad, entidad_id)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      - name: Pruebas unitarias y reporte HTML
+        run: python scripts/ejecutar_pruebas.py --suite unitarias
 
-            CREATE TABLE IF NOT EXISTS belleza_test_marker (
-            id INT NOT NULL PRIMARY KEY
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      - name: Pruebas de API e integración y reporte HTML
+        run: python scripts/ejecutar_pruebas.py --suite integracion
 
-            INSERT INTO belleza_test_marker (id)
-            VALUES (1)
-            ON DUPLICATE KEY UPDATE id = VALUES(id);
-            SQL
-            mysql -h 127.0.0.1 -P 3306 -uroot belleza_integral_test -e "SHOW TABLES; SELECT DATABASE() AS database_name;"
-
-      - name: Pruebas unitarias
-        run: |
-          mkdir -p artifacts
-          python -m pytest tests/unit -q \
-            --junitxml=artifacts/pruebas-unitarias.xml
-
-      - name: Pruebas de APIs e integridad con MySQL
-        run: |
-          python -m pytest tests -q \
-            --ignore=tests/unit \
-            --tb=short \
-            --junitxml=artifacts/pruebas-api-integracion.xml
+      - name: Pruebas Selenium con navegador real
+        run: python scripts/ejecutar_pruebas.py --suite selenium
 
       - name: Resumen de resultados
         if: always()
@@ -147,7 +103,7 @@ jobs:
             echo "- Runner: Ubuntu Linux (máquina virtual efímera)"
             echo "- Base de pruebas: MySQL 8.4 / belleza_integral_test"
             echo "- Build: compilación Python y pip check"
-            echo "- Tests: unitarios + APIs + integridad de datos"
+            echo "- Tests: unitarios + APIs + integridad + Selenium"
             echo "- Promoción: dev -> main solo si este job termina correctamente"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -158,7 +114,7 @@ jobs:
           name: resultados-ci
           path: artifacts/
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 30
 
   promote:
     name: Publicar dev en main
