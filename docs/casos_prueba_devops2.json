@@ -1,0 +1,708 @@
+{
+  "version": "1.0",
+  "proyecto": "Belleza Integral",
+  "casos": [
+    {
+      "id": "CP-01",
+      "titulo": "Normalizar datos válidos de registro",
+      "origen": "Registro de clientes",
+      "tipo": "Positivo",
+      "nivel": "Unitaria",
+      "tecnica": "Partición de equivalencias",
+      "precondiciones": "Entorno Python preparado; función validar_registro disponible.",
+      "datos": "Nombre con espacios externos, ANA@EXAMPLE.COM, teléfono +50255550101 y contraseña válida.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/unit/test_validadores.py::test_validar_registro_normaliza_datos_validos",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Preparar los datos con espacios externos y correo en mayúsculas.",
+          "esperado": "Los datos representan una cuenta válida."
+        },
+        {
+          "no": 2,
+          "accion": "Ejecutar validar_registro con el objeto de prueba.",
+          "esperado": "La función no genera errores."
+        },
+        {
+          "no": 3,
+          "accion": "Comparar el objeto retornado.",
+          "esperado": "Nombre y teléfono sin espacios externos; correo ana@example.com; contraseña conservada."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-02",
+      "titulo": "Rechazar datos inválidos de un servicio",
+      "origen": "Validación del catálogo",
+      "tipo": "Negativo",
+      "nivel": "Unitaria",
+      "tecnica": "Partición de equivalencias",
+      "precondiciones": "Función validar_servicio disponible; no se necesita base de datos.",
+      "datos": "Cuatro variantes: duración booleana, precio 135.123, precio numérico 135 y campo no permitido.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/unit/test_validadores.py::test_validar_servicio_rechaza_entradas_invalidas",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Construir un servicio válido y sustituir un dato por cada variante inválida.",
+          "esperado": "Cada variante contiene únicamente la condición inválida que se evaluará."
+        },
+        {
+          "no": 2,
+          "accion": "Ejecutar el validador una vez por variante.",
+          "esperado": "Cada invocación genera ValueError."
+        },
+        {
+          "no": 3,
+          "accion": "Comprobar que no se obtiene un servicio validado.",
+          "esperado": "Las cuatro entradas inválidas son rechazadas."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-03",
+      "titulo": "Registrar una cuenta cliente válida",
+      "origen": "Registro de clientes",
+      "tipo": "Positivo",
+      "nivel": "Integración",
+      "tecnica": "Partición de equivalencias",
+      "precondiciones": "Base aislada preparada; correo registro.qa@example.com no registrado.",
+      "datos": "Cliente QA, registro.qa@example.com y PasswordTest2026!.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/devops2/test_sprint2.py::test_cp03_registrar_cliente",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Enviar los datos mediante POST /api/v1/auth/registro.",
+          "esperado": "La API responde HTTP 201."
+        },
+        {
+          "no": 2,
+          "accion": "Consultar en la base de pruebas la cuenta creada.",
+          "esperado": "Existe un usuario con el correo de prueba y rol cliente."
+        },
+        {
+          "no": 3,
+          "accion": "Comparar el almacenamiento de la contraseña.",
+          "esperado": "El hash almacenado es diferente de la contraseña enviada."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-04",
+      "titulo": "Iniciar sesión con credenciales válidas",
+      "origen": "Autenticación",
+      "tipo": "Positivo",
+      "nivel": "Integración",
+      "tecnica": "Partición de equivalencias",
+      "precondiciones": "Cuenta 2 activa en el fixture MySQL; API disponible.",
+      "datos": "cuenta2@example.com y PasswordTest2026!.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/devops2/test_sprint2.py::test_cp04_login_valido",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Enviar las credenciales a POST /api/v1/auth/login.",
+          "esperado": "HTTP 200 y token de acceso."
+        },
+        {
+          "no": 2,
+          "accion": "Consultar GET /api/v1/auth/perfil con el token.",
+          "esperado": "HTTP 200."
+        },
+        {
+          "no": 3,
+          "accion": "Revisar la identidad devuelta.",
+          "esperado": "El perfil pertenece al usuario 2."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-05",
+      "titulo": "Rechazar una contraseña incorrecta",
+      "origen": "Validación de credenciales",
+      "tipo": "Negativo",
+      "nivel": "Seguridad",
+      "tecnica": "Partición de equivalencias",
+      "precondiciones": "Cuenta 2 activa; ninguna sesión necesaria.",
+      "datos": "cuenta2@example.com y contraseña Incorrecta2026!.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/devops2/test_sprint2.py::test_cp05_login_invalido",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Enviar la combinación de cuenta válida y contraseña incorrecta.",
+          "esperado": "HTTP 401."
+        },
+        {
+          "no": 2,
+          "accion": "Examinar el cuerpo de respuesta.",
+          "esperado": "No contiene access_token."
+        },
+        {
+          "no": 3,
+          "accion": "Registrar el rechazo de la autenticación.",
+          "esperado": "No se proporciona acceso autenticado."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-06",
+      "titulo": "Bloquear solicitudes sin token",
+      "origen": "Protección de rutas privadas",
+      "tipo": "Negativo",
+      "nivel": "Seguridad",
+      "tecnica": "Tabla de decisión",
+      "precondiciones": "API disponible; solicitudes sin cabecera Authorization.",
+      "datos": "GET /api/v1/auth/perfil y POST /api/v1/citas con objeto vacío.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/devops2/test_sprint2.py::test_cp06_acceso_sin_token",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Consultar el perfil sin token.",
+          "esperado": "HTTP 401."
+        },
+        {
+          "no": 2,
+          "accion": "Solicitar una reserva sin token.",
+          "esperado": "HTTP 401."
+        },
+        {
+          "no": 3,
+          "accion": "Comparar las respuestas con la regla de autenticación.",
+          "esperado": "Ambas rutas impiden operar sin sesión."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-07",
+      "titulo": "Impedir crear servicios con rol cliente",
+      "origen": "Autorización por rol",
+      "tipo": "Negativo",
+      "nivel": "Seguridad",
+      "tecnica": "Tabla de decisión",
+      "precondiciones": "Cliente 2 autenticado; catálogo vacío en el fixture.",
+      "datos": "Manicura QA, Uñas, 60 minutos y precio 135.00.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/devops2/test_sprint2.py::test_cp07_cliente_no_crea_servicios",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Enviar POST /api/v1/servicios con el token del cliente.",
+          "esperado": "HTTP 403."
+        },
+        {
+          "no": 2,
+          "accion": "Consultar el número de servicios almacenados.",
+          "esperado": "El catálogo permanece vacío."
+        },
+        {
+          "no": 3,
+          "accion": "Registrar la decisión de autorización.",
+          "esperado": "La operación queda bloqueada por el rol."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-08",
+      "titulo": "Registrar un servicio como administrador",
+      "origen": "Administración de servicios",
+      "tipo": "Positivo",
+      "nivel": "Integración",
+      "tecnica": "Partición de equivalencias",
+      "precondiciones": "Administrador 1 autenticado; base aislada preparada.",
+      "datos": "Manicura QA, Uñas, 60 minutos y precio 135.00.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/devops2/test_sprint2.py::test_cp08_crear_servicio",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Enviar POST /api/v1/servicios con datos válidos.",
+          "esperado": "HTTP 201 e ID del servicio."
+        },
+        {
+          "no": 2,
+          "accion": "Consultar el registro por ID en MySQL de pruebas.",
+          "esperado": "El servicio existe."
+        },
+        {
+          "no": 3,
+          "accion": "Comparar los campos persistidos.",
+          "esperado": "Nombre Manicura QA, duración 60 y precio 135.00."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-09",
+      "titulo": "Consultar horarios dentro de la jornada",
+      "origen": "Disponibilidad",
+      "tipo": "Positivo",
+      "nivel": "Integración",
+      "tecnica": "Valores límite y partición de equivalencias",
+      "precondiciones": "Profesional 3 activo; servicio de 60 minutos; jornada 09:00 a 17:00 sin citas.",
+      "datos": "Fecha de hoy en Guatemala más siete días; profesional 3.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/devops2/test_sprint2.py::test_cp09_disponibilidad_respeta_jornada",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Consultar disponibilidad con profesional, servicio y fecha.",
+          "esperado": "HTTP 200 y lista no vacía."
+        },
+        {
+          "no": 2,
+          "accion": "Buscar el primer intervalo disponible.",
+          "esperado": "Existe el intervalo 09:00 a 10:00."
+        },
+        {
+          "no": 3,
+          "accion": "Comprobar los límites de todos los intervalos.",
+          "esperado": "Ninguno inicia antes de 09:00 ni finaliza después de 17:00."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-10",
+      "titulo": "Reservar una cita en un intervalo libre",
+      "origen": "Registro de citas",
+      "tipo": "Positivo",
+      "nivel": "Integración",
+      "tecnica": "Partición de equivalencias",
+      "precondiciones": "Cliente 2 autenticado; profesional 3 disponible; intervalo de 09:00 libre.",
+      "datos": "Servicio de 60 minutos; fecha futura; hora 09:00.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/devops2/test_sprint2.py::test_cp10_reservar_cita",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Enviar POST /api/v1/citas con la selección válida.",
+          "esperado": "HTTP 201 e ID de cita."
+        },
+        {
+          "no": 2,
+          "accion": "Consultar la cita almacenada por su ID.",
+          "esperado": "Existe una sola fila correspondiente a la creación."
+        },
+        {
+          "no": 3,
+          "accion": "Comparar propietario, profesional, duración y estado.",
+          "esperado": "Cliente 2, profesional 3, duración 60 y estado pendiente."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-11",
+      "titulo": "Rechazar una segunda reserva coincidente",
+      "origen": "Prevención de conflictos",
+      "tipo": "Negativo",
+      "nivel": "Integración",
+      "tecnica": "Tabla de decisión",
+      "precondiciones": "Cita del cliente 2 a las 09:00; cliente 4 autenticado.",
+      "datos": "Mismo profesional, servicio, fecha y hora para la segunda reserva.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/devops2/test_sprint2.py::test_cp11_rechazar_reserva_duplicada",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Crear la primera cita en el intervalo.",
+          "esperado": "HTTP 201."
+        },
+        {
+          "no": 2,
+          "accion": "Intentar la segunda reserva con el cliente 4.",
+          "esperado": "HTTP 409."
+        },
+        {
+          "no": 3,
+          "accion": "Contar las citas almacenadas en la base aislada.",
+          "esperado": "Solo permanece la cita original."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-12",
+      "titulo": "Resolver dos reservas simultáneas",
+      "origen": "Concurrencia e integridad de agenda",
+      "tipo": "Conflicto concurrente",
+      "nivel": "Integración",
+      "tecnica": "Escenario de concurrencia",
+      "precondiciones": "Intervalo libre; dos clientes; conexiones reales de MySQL disponibles.",
+      "datos": "Dos solicitudes sincronizadas para profesional 3 a las 09:00.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/test_flujos.py::test_concurrent_booking",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Preparar dos solicitudes y sincronizar su inicio mediante una barrera.",
+          "esperado": "Ambas compiten por el mismo intervalo libre."
+        },
+        {
+          "no": 2,
+          "accion": "Ejecutar las solicitudes concurrentemente.",
+          "esperado": "Una responde HTTP 201 y otra HTTP 409."
+        },
+        {
+          "no": 3,
+          "accion": "Contar las citas del profesional en la fecha probada.",
+          "esperado": "Existe una sola reserva."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-13",
+      "titulo": "Reprogramar una cita propia",
+      "origen": "Reprogramación",
+      "tipo": "Positivo",
+      "nivel": "Integración",
+      "tecnica": "Transición de estados",
+      "precondiciones": "Cita propia del cliente 2 a las 09:00; intervalo 11:00 libre.",
+      "datos": "Misma fecha futura y nueva hora 11:00.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/devops2/test_sprint2.py::test_cp13_reprogramar_cita",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Solicitar PATCH /api/v1/citas/{id}/reprogramar.",
+          "esperado": "HTTP 200."
+        },
+        {
+          "no": 2,
+          "accion": "Consultar la misma cita en la base de pruebas.",
+          "esperado": "La hora es 11:00."
+        },
+        {
+          "no": 3,
+          "accion": "Comparar propietario y estado posterior.",
+          "esperado": "Conserva el cliente 2 y queda pendiente."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-14",
+      "titulo": "Conservar la reserva ante un cambio conflictivo",
+      "origen": "Integridad de reprogramación",
+      "tipo": "Negativo",
+      "nivel": "Integración",
+      "tecnica": "Tabla de decisión",
+      "precondiciones": "Cita propia a las 09:00 y otra cita del profesional a las 11:00.",
+      "datos": "Cambio solicitado de 09:00 a 11:00.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/test_adicionales.py::test_reprogramacion_conflicto_conserva_original",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Crear las dos citas que establecen el escenario.",
+          "esperado": "Ambas reservas se registran en sus intervalos."
+        },
+        {
+          "no": 2,
+          "accion": "Intentar mover la cita de las 09:00 a las 11:00.",
+          "esperado": "HTTP 409."
+        },
+        {
+          "no": 3,
+          "accion": "Consultar nuevamente la hora de la cita original.",
+          "esperado": "La hora permanece en 09:00."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-15",
+      "titulo": "Cancelar una cita y liberar el intervalo",
+      "origen": "Cancelación",
+      "tipo": "Positivo",
+      "nivel": "Integración",
+      "tecnica": "Transición de estados",
+      "precondiciones": "Cita propia futura a las 09:00; sin otro bloqueo en ese intervalo.",
+      "datos": "Cliente 2 y cita pendiente.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/devops2/test_sprint2.py::test_cp15_cancelar_libera_intervalo",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Consultar disponibilidad antes de cancelar.",
+          "esperado": "09:00 no está disponible."
+        },
+        {
+          "no": 2,
+          "accion": "Enviar PATCH /api/v1/citas/{id}/cancelar.",
+          "esperado": "HTTP 200."
+        },
+        {
+          "no": 3,
+          "accion": "Consultar de nuevo la disponibilidad.",
+          "esperado": "El intervalo de 09:00 vuelve a aparecer."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-16",
+      "titulo": "Impedir reprogramar una cita ajena",
+      "origen": "Protección de propiedad de citas",
+      "tipo": "Negativo",
+      "nivel": "Seguridad",
+      "tecnica": "Tabla de decisión",
+      "precondiciones": "Cita del cliente 2 a las 09:00; cliente 4 autenticado.",
+      "datos": "ID de cita ajena y solicitud de cambio a las 11:00.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/devops2/test_sprint2.py::test_cp16_no_reprogramar_cita_ajena",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Solicitar el cambio usando el token del cliente 4.",
+          "esperado": "HTTP 404; no revela acceso a la cita ajena."
+        },
+        {
+          "no": 2,
+          "accion": "Consultar la cita mediante la base aislada.",
+          "esperado": "Permanece a las 09:00."
+        },
+        {
+          "no": 3,
+          "accion": "Registrar el resultado de la autorización.",
+          "esperado": "La modificación no se realiza."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-17",
+      "titulo": "Revocar el token al cerrar sesión",
+      "origen": "Cierre de sesión",
+      "tipo": "Negativo después del cierre",
+      "nivel": "Seguridad",
+      "tecnica": "Transición de estados",
+      "precondiciones": "Cliente 2 autenticado con un token obtenido por login.",
+      "datos": "Token previo al logout.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/devops2/test_sprint2.py::test_cp17_logout_revoca_token",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Consultar el perfil antes del cierre.",
+          "esperado": "HTTP 200."
+        },
+        {
+          "no": 2,
+          "accion": "Enviar POST /api/v1/auth/logout.",
+          "esperado": "HTTP 200."
+        },
+        {
+          "no": 3,
+          "accion": "Reutilizar el mismo token para consultar el perfil.",
+          "esperado": "HTTP 401."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-18",
+      "titulo": "Atender veinte consultas concurrentes",
+      "origen": "Rendimiento básico local",
+      "tipo": "Concurrencia de lectura",
+      "nivel": "Rendimiento",
+      "tecnica": "Escenario de carga",
+      "precondiciones": "Catálogo y jornada preparados; cliente Flask y MySQL locales.",
+      "datos": "Veinte consultas de disponibilidad concurrentes.",
+      "prioridad": "Media",
+      "automatizacion": "tests/test_adicionales.py::test_20_consultas_simultaneas",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Preparar veinte solicitudes iguales para una fecha futura.",
+          "esperado": "Datos y ambiente identificados."
+        },
+        {
+          "no": 2,
+          "accion": "Ejecutarlas mediante veinte trabajadores.",
+          "esperado": "Las veinte respuestas son HTTP 200."
+        },
+        {
+          "no": 3,
+          "accion": "Registrar los tiempos observados.",
+          "esperado": "Se registra el máximo local como dato informativo; no acredita SLA de Railway."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-19",
+      "titulo": "Conservar y cerrar la sesión desde el navegador",
+      "origen": "Sesión de cliente en la interfaz",
+      "tipo": "Positivo",
+      "nivel": "Sistema",
+      "tecnica": "Transición de estados",
+      "precondiciones": "Chrome real y controlador disponibles; aplicación local servida con MySQL aislado.",
+      "datos": "Cuenta cliente 2; ventana 1366 por 900 en modo headless.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/e2e/test_reservas.py::test_cp19_sesion_navegador",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Abrir la web y completar el formulario de ingreso.",
+          "esperado": "Aparece el botón Salir."
+        },
+        {
+          "no": 2,
+          "accion": "Recargar la página.",
+          "esperado": "La sesión sigue activa y vuelve a mostrarse Salir."
+        },
+        {
+          "no": 3,
+          "accion": "Pulsar Salir.",
+          "esperado": "Aparece Ingresar y desaparece Mis citas del menú privado."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-20",
+      "titulo": "Reservar reprogramar y cancelar desde la interfaz",
+      "origen": "Flujo completo de gestión de citas",
+      "tipo": "Positivo",
+      "nivel": "Sistema",
+      "tecnica": "Escenario de caso de uso",
+      "precondiciones": "Cliente 2, profesional 3 y servicio de 60 minutos preparados en la base aislada; navegador real.",
+      "datos": "Fecha futura; reserva 09:00; nueva hora 11:00.",
+      "prioridad": "Alta",
+      "automatizacion": "tests/e2e/test_reservas.py::test_cp20_reservar_reprogramar_cancelar",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Ingresar y seleccionar el servicio y profesional.",
+          "esperado": "Se presenta el formulario de disponibilidad."
+        },
+        {
+          "no": 2,
+          "accion": "Elegir fecha, consultar horarios y reservar 09:00.",
+          "esperado": "Mis citas muestra la nueva reserva a las 09:00."
+        },
+        {
+          "no": 3,
+          "accion": "Recargar y volver a Mis citas.",
+          "esperado": "La cita persiste."
+        },
+        {
+          "no": 4,
+          "accion": "Abrir Reprogramar, elegir 11:00 y guardar.",
+          "esperado": "La tarjeta de la cita muestra 11:00."
+        },
+        {
+          "no": 5,
+          "accion": "Cancelar la cita y aceptar la confirmación.",
+          "esperado": "La tarjeta muestra el estado Cancelada."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-21",
+      "titulo": "Revisar usabilidad en escritorio y móvil",
+      "origen": "Usabilidad y adaptación visual",
+      "tipo": "Revisión manual",
+      "nivel": "UX",
+      "tecnica": "Lista de comprobación",
+      "precondiciones": "Staging disponible; dispositivo móvil o emulación y equipo de escritorio identificados.",
+      "datos": "Vista escritorio 1366 por 900 y móvil 390 por 844; cuenta ficticia.",
+      "prioridad": "Media",
+      "automatizacion": "Manual",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Abrir reserva y Mis citas en ambas vistas.",
+          "esperado": "Texto y controles legibles; sin solapamientos que impidan operar."
+        },
+        {
+          "no": 2,
+          "accion": "Recorrer el formulario con teclado en escritorio.",
+          "esperado": "Orden comprensible y foco visible."
+        },
+        {
+          "no": 3,
+          "accion": "Enviar un formulario incompleto y corregirlo.",
+          "esperado": "Se muestran mensajes comprensibles y la reserva solo se crea con datos válidos."
+        },
+        {
+          "no": 4,
+          "accion": "Anotar hallazgos y capturar evidencias.",
+          "esperado": "Se registra dispositivo, navegador, resultado y defectos observados."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    },
+    {
+      "id": "CP-22",
+      "titulo": "Aceptar el flujo de citas con el negocio",
+      "origen": "Aceptación del incremento del Sprint 2",
+      "tipo": "Validación de negocio",
+      "nivel": "Aceptación",
+      "tecnica": "Escenario de aceptación",
+      "precondiciones": "Incremento desplegado en staging; representante del negocio disponible; criterios previamente acordados.",
+      "datos": "Reserva, conflicto de horario, reprogramación y cancelación con datos ficticios.",
+      "prioridad": "Alta",
+      "automatizacion": "Manual con apoyo de CP-10 a CP-20",
+      "pasos": [
+        {
+          "no": 1,
+          "accion": "Demostrar la reserva y su consulta al representante del negocio.",
+          "esperado": "Comprende el servicio, profesional, fecha, hora y estado pendiente."
+        },
+        {
+          "no": 2,
+          "accion": "Demostrar el rechazo de un horario ocupado.",
+          "esperado": "La operación respeta la disponibilidad del salón."
+        },
+        {
+          "no": 3,
+          "accion": "Demostrar reprogramación y cancelación.",
+          "esperado": "Los cambios se reflejan en la agenda y en la consulta del cliente."
+        },
+        {
+          "no": 4,
+          "accion": "Registrar aceptación o rechazo con fecha y responsable.",
+          "esperado": "Existe una decisión real documentada y observaciones para el backlog."
+        }
+      ],
+      "resultado_obtenido": "Pendiente de ejecución",
+      "estado": "No ejecutado"
+    }
+  ]
+}
