@@ -4,6 +4,7 @@ Esta versión fue adaptada para trabajar con el esquema base de `database/databa
 
 ## Requisitos
 
+
 - Python 3.11 o superior.
 - MySQL 8.0 o superior. La capa de integridad utiliza `JSON_TABLE`, funciones JSON, `SIGNAL`, triggers, vistas y procedimientos almacenados.
 - Una cuenta MySQL con permisos sobre la base del proyecto. Para instalar la capa de integridad debe poder crear `TRIGGER`, `VIEW`, `PROCEDURE` y `FUNCTION`.
