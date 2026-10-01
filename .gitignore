@@ -9,3 +9,8 @@ __pycache__/
 # DEVOPS 1
 *.pem
 docker/mysql-init/LEEME.txt
+
+# Resultados locales y configuración de despliegue
+artifacts/
+.railway/
+.env.ci

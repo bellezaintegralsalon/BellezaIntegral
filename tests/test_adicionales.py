@@ -1,9 +1,11 @@
 import time
+import pytest
 from concurrent.futures import ThreadPoolExecutor
 from sqlalchemy import text
 from test_flujos import call,catalog,product,pedido
 
 
+@pytest.mark.caso("CP-14")
 def test_reprogramacion_conflicto_conserva_original(client,headers,motor):
     s,date,_=catalog(client,headers)
     def book(hour,id):return call(client,headers,'/citas','POST',{'personal_id':3,'servicio_id':s,'fecha':date,'hora':hour},id=id,expected=201)['data']['id']
@@ -32,6 +34,8 @@ def test_compra_fallida_sin_movimientos_parciales(client,headers,motor):
         assert c.execute(text('SELECT COUNT(*) FROM pedidos')).scalar_one()==0
 
 
+@pytest.mark.caso("CP-18")
+@pytest.mark.rendimiento
 def test_20_consultas_simultaneas(app,client,headers):
     s,date,_=catalog(client,headers)
     def read(i):

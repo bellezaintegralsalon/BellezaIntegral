@@ -10,6 +10,14 @@ from sqlalchemy.engine import make_url
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
+
+
+def pytest_collection_modifyitems(items):
+    """Vincula los casos documentados con JUnit sin registrar credenciales."""
+    for item in items:
+        for marker in item.iter_markers("caso"):
+            item.user_properties.append(("caso", marker.args[0]))
 
 
 @pytest.fixture(scope="session")
