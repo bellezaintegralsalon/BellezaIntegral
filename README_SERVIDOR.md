@@ -1,4 +1,4 @@
-# Belleza Integral - despliegue en servidor
+# Belleza Integral --- despliegue en servidor
 
 Esta versión fue adaptada para trabajar con el esquema base de `database/database.sql` y con la capa de integridad/auditoría incorporada en `database/006_integridad_auditoria.sql` y `database/007_compatibilidad_api.sql`.
 
